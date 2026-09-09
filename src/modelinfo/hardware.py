@@ -1,3 +1,4 @@
+import math
 import re
 import subprocess
 from typing import Optional, Tuple
@@ -341,6 +342,8 @@ def resolve_gpu(target: str) -> Tuple[str, float, int]:
     match = re.match(r"^(\d+)x\s*(.+)$", lower_target)
     if match:
         gpu_count = int(match.group(1))
+        if gpu_count < 1:
+            raise ValueError("GPU count must be at least 1.")
         target_name = match.group(2)
     else:
         target_name = target
@@ -352,13 +355,16 @@ def resolve_gpu(target: str) -> Tuple[str, float, int]:
         display_name = f"{gpu_count}x {target_name}" if gpu_count > 1 else target_name
         return display_name, vram_gb, gpu_count
 
-    # If the user passed a pure number, assume GB
+    # Parse numeric capacity before normalization can remove a minus sign.
     try:
-        vram_gb = float(normalized) * gpu_count
-        display_name = f"Custom ({vram_gb} GB)"
-        return display_name, vram_gb, gpu_count
+        vram_gb = float(target_name.strip()) * gpu_count
     except ValueError:
         pass
+    else:
+        if not math.isfinite(vram_gb) or vram_gb <= 0:
+            raise ValueError("GPU VRAM must be a finite number greater than 0.")
+        display_name = f"Custom ({vram_gb} GB)"
+        return display_name, vram_gb, gpu_count
 
     import difflib
 
