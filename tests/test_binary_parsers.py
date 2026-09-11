@@ -1,10 +1,9 @@
 """Small generated checkpoint fixtures; no model downloads or torch dependency."""
 
 import json
-import pickle
 import struct
 import zipfile
-from collections import OrderedDict
+from pickle import UnpicklingError
 
 import pytest
 
@@ -83,14 +82,11 @@ def test_safetensors_index_deduplicates_shards_and_reports_missing_files(tmp_pat
 
 def test_pytorch_reads_ordered_state_dict_from_archive(tmp_path):
     path = tmp_path / "model.pt"
-    state = OrderedDict(
-        [
-            ("weight", {"shape": [2, 3], "dtype": "F16"}),
-            ("step", 12),
-        ]
-    )
+    # Fixed protocol-0 OrderedDict fixture: inspect metadata without generating
+    # executable serialization during the test.
+    state = b"ccollections\nOrderedDict\np0\n(tRp1\nVweight\np2\n(dp3\nVshape\np4\n(lp5\nI2\naI3\nasVdtype\np6\nVF16\np7\nssVstep\np8\nI12\ns."
     with zipfile.ZipFile(path, "w") as archive:
-        archive.writestr("checkpoint/data.pkl", pickle.dumps(state))
+        archive.writestr("checkpoint/data.pkl", state)
     assert parse_pytorch_header(str(path)) == {
         "weight": {"shape": [2, 3], "dtype": "F16"},
         "step": {"shape": [], "dtype": "F32"},
@@ -116,8 +112,8 @@ def test_pytorch_rejects_unapproved_pickle_global(tmp_path):
     path = tmp_path / "forbidden.pt"
     # A harmless builtin still must not bypass the explicit unpickler allowlist.
     with zipfile.ZipFile(path, "w") as archive:
-        archive.writestr("checkpoint/data.pkl", pickle.dumps(len))
-    with pytest.raises(pickle.UnpicklingError, match="forbidden"):
+        archive.writestr("checkpoint/data.pkl", b"cbuiltins\nlen\n.")
+    with pytest.raises(UnpicklingError, match="forbidden"):
         parse_pytorch_header(str(path))
 
 
