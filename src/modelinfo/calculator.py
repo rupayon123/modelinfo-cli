@@ -82,8 +82,8 @@ def calculate_footprint(
             if name == "__metadata__":
                 continue
                 
-            shape = metadata.get("shape", [])
-            if not shape:
+            shape = metadata.get("shape")
+            if shape is None:
                 continue
                 
             param_count = math.prod(shape)
