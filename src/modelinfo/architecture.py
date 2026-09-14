@@ -65,13 +65,16 @@ def extract_architecture(tensors: Dict[str, Any], config: Dict[str, Any] = None)
             if len(parts) > idx + 1 and parts[idx+1].isdigit():
                 layers_set.add(int(parts[idx+1]))
 
-        if name.endswith("k_proj.weight") or name.endswith("attn.k.weight") or name.endswith("k_proj.w"):
+        if is_gguf and len(parts) > 1 and parts[0] == "blk" and parts[1].isdigit():
+            layers_set.add(int(parts[1]))
+
+        if (is_gguf and name.endswith("attn_k.weight")) or name.endswith("k_proj.weight") or name.endswith("attn.k.weight") or name.endswith("k_proj.w"):
             found_k_proj = True
             shape = meta.get("shape", [])
             if len(shape) >= 2:
                 kv_dim = shape[-1] if is_gguf else shape[0]
 
-        if "qkv_proj.weight" in name or "c_attn.weight" in name:
+        if "qkv_proj.weight" in name or "c_attn.weight" in name or (is_gguf and name.endswith("attn_qkv.weight")):
             found_fused = True
             if not found_k_proj:
                 shape = meta.get("shape", [])
