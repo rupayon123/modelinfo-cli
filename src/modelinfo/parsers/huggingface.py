@@ -63,6 +63,11 @@ def _make_request(
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
+            requested_range = req.get_header("Range", "")
+            if (requested_range.startswith("bytes=")
+                    and requested_range.split("=", 1)[1].split("-", 1)[0] != "0"
+                    and getattr(response, "status", None) == 200):
+                raise ValueError("Server ignored the requested byte range; refusing data from the wrong offset.")
             if limit is not None:
                 return response.read(limit)
             return response.read()
