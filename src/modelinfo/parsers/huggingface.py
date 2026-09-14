@@ -59,8 +59,7 @@ def _make_request(
     limit: int | None = None,
     timeout: float = 10.0,
 ) -> bytes:
-    if headers is None:
-        headers = {}
+    headers = dict(headers) if headers is not None else {}
         
     token = _get_hf_token()
     if token:

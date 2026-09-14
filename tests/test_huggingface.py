@@ -181,3 +181,18 @@ def test_remote_stream_reuses_buffer_and_stops_at_eof(monkeypatch):
     assert stream.read(20) == b"efghij"
     assert stream.tell() == 10
     assert stream.read(1) == b""
+
+
+def test_request_does_not_retain_token_in_reused_headers(monkeypatch):
+    calls = []
+    def urlopen(request, timeout):
+        calls.append(request)
+        return response(b"ok")
+    monkeypatch.setattr(hf.urllib.request, "urlopen", urlopen)
+    headers = {"Range": "bytes=0-1"}
+    hf._make_request("https://hub.example/file", headers=headers)
+    monkeypatch.setattr(hf, "_get_hf_token", lambda: None)
+    hf._make_request("https://hub.example/file", headers=headers)
+    assert calls[0].get_header("Authorization") == "Bearer test-token"
+    assert calls[1].get_header("Authorization") is None
+    assert headers == {"Range": "bytes=0-1"}
