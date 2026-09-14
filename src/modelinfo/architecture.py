@@ -41,7 +41,7 @@ def extract_architecture(tensors: Dict[str, Any], config: Dict[str, Any] = None)
         hidden_size = config.get("hidden_size", 0)
 
         if num_attention_heads > 0:
-            head_dim = hidden_size // num_attention_heads
+            head_dim = config.get("head_dim") or hidden_size // num_attention_heads
             kv_dim = num_key_value_heads * head_dim
             if num_layers > 0 and kv_dim > 0:
                 return num_layers, kv_dim, False
