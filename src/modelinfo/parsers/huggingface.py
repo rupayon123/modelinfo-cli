@@ -122,6 +122,8 @@ def _get_remote_file_size_fallback(repo_id: str, filename: str, timeout: float =
 
 class RemoteFileStream:
     def __init__(self, url: str, chunk_size: int = 1024*1024, timeout: float = 10.0):
+        if chunk_size <= 0:
+            raise ValueError("chunk_size must be positive")
         self.url = url
         self.chunk_size = chunk_size
         self.timeout = timeout
@@ -132,6 +134,8 @@ class RemoteFileStream:
         if size == -1:
             raise NotImplementedError("Unlimited remote read is not supported.")
             
+        if size < -1:
+            raise ValueError("read size must be nonnegative or -1")
         end_pos = self.position + size
         if end_pos > 50 * 1024 * 1024:
             raise ValueError("Remote header read limit exceeded (50MB). File might be invalid or too large.")
@@ -164,11 +168,14 @@ class RemoteFileStream:
 
     def seek(self, offset: int, whence: int = 0) -> int:
         if whence == 0:
-            self.position = offset
+            position = offset
         elif whence == 1:
-            self.position += offset
+            position = self.position + offset
         else:
             raise NotImplementedError("Seek from end is not supported.")
+        if position < 0:
+            raise ValueError("negative seek position")
+        self.position = position
         return self.position
 
     def tell(self) -> int:
