@@ -35,10 +35,10 @@ def extract_architecture(tensors: Dict[str, Any], config: Dict[str, Any] = None)
 
     # 2. Attempt explicit SafeTensors config.json
     if config:
-        num_layers = config.get("num_hidden_layers", 0)
-        num_attention_heads = config.get("num_attention_heads", 1)
+        num_layers = config.get("num_hidden_layers", config.get("n_layer", 0))
+        num_attention_heads = config.get("num_attention_heads", config.get("n_head", 1))
         num_key_value_heads = config.get("num_key_value_heads", num_attention_heads)
-        hidden_size = config.get("hidden_size", 0)
+        hidden_size = config.get("hidden_size", config.get("n_embd", 0))
 
         if num_attention_heads > 0:
             head_dim = config.get("head_dim") or hidden_size // num_attention_heads
