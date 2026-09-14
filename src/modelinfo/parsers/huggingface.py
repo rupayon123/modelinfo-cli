@@ -24,6 +24,12 @@ def _get_hf_endpoint() -> str:
     return endpoint
 
 
+def _hub_file_url(repo_id: str, filename: str) -> str:
+    repo_path = urllib.parse.quote(repo_id, safe="/")
+    file_path = urllib.parse.quote(filename, safe="/")
+    return f"{_get_hf_endpoint()}/{repo_path}/resolve/main/{file_path}"
+
+
 def _get_hf_token() -> str | None:
     token = os.environ.get("HF_TOKEN")
     if token:
@@ -79,7 +85,7 @@ def _make_request(
         raise
 
 def _fetch_safetensors_header(repo_id: str, filename: str, timeout: float = 10.0) -> Dict[str, Any]:
-    url = f"{_get_hf_endpoint()}/{repo_id}/resolve/main/{filename}"
+    url = _hub_file_url(repo_id, filename)
     
     # 1. Fetch the first 500KB in a single roundtrip
     headers = {"Range": "bytes=0-500000"}
@@ -109,7 +115,7 @@ def _fetch_safetensors_header(repo_id: str, filename: str, timeout: float = 10.0
     return json.loads(json_bytes)
 
 def _get_remote_file_size_fallback(repo_id: str, filename: str, timeout: float = 10.0) -> float:
-    req = urllib.request.Request(f"{_get_hf_endpoint()}/{repo_id}/resolve/main/{filename}", method="HEAD")
+    req = urllib.request.Request(_hub_file_url(repo_id, filename), method="HEAD")
     token = _get_hf_token()
     if token:
         req.add_header("Authorization", f"Bearer {token}")
@@ -186,7 +192,7 @@ class RemoteFileStream:
 
 
 def _fetch_remote_gguf_single(real_repo_id: str, filename: str, fallback_size: float | None, timeout: float) -> Tuple[Dict[str, Any], float]:
-    url = f"{_get_hf_endpoint()}/{real_repo_id}/resolve/main/{filename}"
+    url = _hub_file_url(real_repo_id, filename)
     stream = RemoteFileStream(url, timeout=timeout)
     from modelinfo.parsers.gguf import parse_gguf_header
     tensors = parse_gguf_header(stream)
@@ -205,7 +211,7 @@ def _fetch_remote_gguf_group(real_repo_id: str, gguf_files: List[Dict[str, Any]]
         header_target = gguf_files[0]
     
     header_file = header_target["filename"]
-    url = f"{_get_hf_endpoint()}/{real_repo_id}/resolve/main/{header_file}"
+    url = _hub_file_url(real_repo_id, header_file)
     stream = RemoteFileStream(url, timeout=timeout)
     from modelinfo.parsers.gguf import parse_gguf_header
     tensors = parse_gguf_header(stream)
@@ -255,7 +261,7 @@ def _fetch_remote_safetensors_sharded(
     fetch_tensors: bool,
     timeout: float
 ) -> Tuple[Dict[str, Any], float]:
-    index_url = f"{_get_hf_endpoint()}/{real_repo_id}/resolve/main/model.safetensors.index.json"
+    index_url = _hub_file_url(real_repo_id, "model.safetensors.index.json")
     index_data = json.loads(_make_request(index_url, timeout=timeout).decode("utf-8"))
     
     weight_map = index_data.get("weight_map", {})
@@ -287,7 +293,7 @@ def _fetch_remote_safetensors_sharded(
 
 def _fetch_remote_safetensors_single(real_repo_id: str, timeout: float) -> Tuple[Dict[str, Any], float]:
     total_size = 0.0
-    req = urllib.request.Request(f"{_get_hf_endpoint()}/{real_repo_id}/resolve/main/model.safetensors", method="HEAD")
+    req = urllib.request.Request(_hub_file_url(real_repo_id, "model.safetensors"), method="HEAD")
     token = _get_hf_token()
     if token:
         req.add_header("Authorization", f"Bearer {token}")
@@ -329,7 +335,7 @@ def fetch_huggingface_repo(repo_id: str, fetch_tensors: bool = False, timeout: f
     
     config = None
     if "config.json" in filenames:
-        config_url = f"{_get_hf_endpoint()}/{real_repo_id}/resolve/main/config.json"
+        config_url = _hub_file_url(real_repo_id, "config.json")
         config = json.loads(_make_request(config_url, timeout=timeout).decode("utf-8"))
 
     # Find GGUF siblings
