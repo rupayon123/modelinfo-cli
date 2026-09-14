@@ -90,6 +90,8 @@ def _fetch_safetensors_header(repo_id: str, filename: str, timeout: float = 10.0
         raise ValueError(f"File {filename} is too small to contain a SafeTensors header.")
         
     header_size = struct.unpack("<Q", chunk[:8])[0]
+    if header_size > 100 * 1024 * 1024:
+        raise ValueError(f"Header length ({header_size} bytes) exceeds maximum allowed size.")
     
     # 2. Slice locally if it fits
     if 8 + header_size <= len(chunk):
