@@ -79,7 +79,8 @@ def extract_architecture(tensors: Dict[str, Any], config: Dict[str, Any] = None)
             if not found_k_proj:
                 shape = meta.get("shape", [])
                 if len(shape) >= 2:
-                    kv_dim = (shape[-1] if is_gguf else shape[0]) // 3
+                    output_dim = shape[-1] if is_gguf or name.endswith("c_attn.weight") else shape[0]
+                    kv_dim = output_dim // 3
 
     num_layers = len(layers_set)
     if found_fused and not found_k_proj and kv_dim > 0:
