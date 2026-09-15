@@ -49,6 +49,19 @@ class RestrictedUnpickler(pickle.Unpickler):
         },
     }
 
+    def persistent_load(self, saved_id: Any) -> DummyStorage:
+        # ZIP checkpoints refer to tensor storage via a five-element ID.
+        # Only reconstruct metadata using our existing dummy allowlist; never
+        # load storage bytes, import torch, or invoke a pickle-provided callable.
+        if not isinstance(saved_id, tuple) or len(saved_id) != 5:
+            raise pickle.UnpicklingError("Invalid storage persistent ID")
+        kind, storage_type, _, _, _ = saved_id
+        if (kind != "storage" or not isinstance(storage_type, type)
+                or not issubclass(storage_type, DummyStorage)
+                or storage_type is DummyStorage):
+            raise pickle.UnpicklingError("Unsupported storage persistent ID")
+        return storage_type()
+
     def find_class(self, module: str, name: str) -> Any:
         if module in self.ALLOWED_MODULES and name in self.ALLOWED_MODULES[module]:
             if name == "OrderedDict":
