@@ -91,7 +91,10 @@ def calculate_footprint(
             shape = metadata.get("shape")
             if shape is None:
                 continue
-                
+            if (not isinstance(shape, (list, tuple))
+                    or any(type(dimension) is not int or dimension < 0 for dimension in shape)):
+                raise ValueError(f"Invalid tensor shape for {name!r}: expected nonnegative integer dimensions")
+
             param_count = math.prod(shape)
             total_params += param_count
             
