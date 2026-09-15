@@ -283,6 +283,12 @@ def _detect_intel_gpu() -> Optional[Tuple[str, float, int]]:
 
 def _detect_apple_gpu() -> Optional[Tuple[str, float, int]]:
     try:
+        architecture = subprocess.run(
+            ["sysctl", "-n", "hw.optional.arm64"],
+            capture_output=True, text=True, check=True, timeout=2.0,
+        )
+        if architecture.stdout.strip() != "1":
+            return None
         result = subprocess.run(
             ["sysctl", "hw.memsize"],
             capture_output=True,
