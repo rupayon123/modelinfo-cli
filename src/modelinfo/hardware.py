@@ -210,9 +210,8 @@ def _detect_amd_gpu() -> Optional[Tuple[str, float, int]]:
             total_bytes = 0
             gpu_count = len(lines)
             for line in lines:
-                parts = line.split(":")
-                if len(parts) >= 2:
-                    total_bytes += int(parts[1].strip())
+                # Device prefixes contain a colon too (GPU[0] : VRAM ...).
+                total_bytes += int(line.rsplit(":", 1)[1].strip())
             display_name = (
                 f"AMD Multi-GPU ({gpu_count}x)" if gpu_count > 1 else "AMD GPU"
             )
