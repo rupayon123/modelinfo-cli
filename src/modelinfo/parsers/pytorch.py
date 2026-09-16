@@ -97,6 +97,11 @@ def parse_pytorch_header(path: str) -> Dict[str, Any]:
             data = unpickler.load()
             
     if isinstance(data, dict):
+        for key in ("state_dict", "model_state_dict"):
+            candidate = data.get(key)
+            if isinstance(candidate, dict) and "shape" not in candidate:
+                data = candidate
+                break
         for k, v in data.items():
             if isinstance(v, dict) and "shape" in v:
                 tensors[k] = v
