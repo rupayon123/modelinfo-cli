@@ -28,6 +28,16 @@ def dummy_rebuild_tensor_v2(
             dtype = "I32"
         elif storage.name == "LongStorage":
             dtype = "I64"
+        elif storage.name == "DoubleStorage":
+            dtype = "F64"
+        elif storage.name == "ShortStorage":
+            dtype = "I16"
+        elif storage.name == "CharStorage":
+            dtype = "I8"
+        elif storage.name == "ByteStorage":
+            dtype = "U8"
+        elif storage.name == "BoolStorage":
+            dtype = "BOOL"
     return {"shape": list(size), "dtype": dtype}
 
 
@@ -46,6 +56,11 @@ class RestrictedUnpickler(pickle.Unpickler):
             "BFloat16Storage",
             "IntStorage",
             "LongStorage",
+            "DoubleStorage",
+            "ShortStorage",
+            "CharStorage",
+            "ByteStorage",
+            "BoolStorage",
         },
     }
 
