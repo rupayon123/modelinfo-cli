@@ -1,6 +1,7 @@
 import concurrent.futures
 import json
 import os
+import re
 import struct
 import urllib.error
 import urllib.parse
@@ -75,6 +76,13 @@ def _make_request(
                     and requested_range.split("=", 1)[1].split("-", 1)[0] != "0"
                     and getattr(response, "status", None) == 200):
                 raise ValueError("Server ignored the requested byte range; refusing data from the wrong offset.")
+            content_range = getattr(response, "headers", {}).get("Content-Range")
+            if requested_range.startswith("bytes=") and getattr(response, "status", None) == 206 and content_range:
+                match = re.fullmatch(r"bytes (\d+)-(\d+)/(?:\d+|\*)", content_range)
+                expected_start = int(requested_range.split("=", 1)[1].split("-", 1)[0])
+                if (match is None or int(match[1]) != expected_start
+                        or int(match[2]) < int(match[1])):
+                    raise ValueError("Server returned data for an invalid or unexpected byte range.")
             if limit is not None:
                 return response.read(limit)
             return response.read()
