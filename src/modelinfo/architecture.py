@@ -17,7 +17,8 @@ def extract_architecture(tensors: Dict[str, Any], config: Dict[str, Any] = None)
     if gen_arch:
         arch_str = str(gen_arch)
         num_layers = metadata.get(f"{arch_str}.block_count", 0)
-        kv_heads = metadata.get(f"{arch_str}.attention.head_count_kv", 0)
+        kv_heads = metadata.get(f"{arch_str}.attention.head_count_kv",
+                                metadata.get(f"{arch_str}.attention.head_count", 0))
 
         key_length = metadata.get(f"{arch_str}.attention.key_length")
         if not key_length:
