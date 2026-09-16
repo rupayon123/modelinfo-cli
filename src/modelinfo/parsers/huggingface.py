@@ -141,6 +141,8 @@ class RemoteFileStream:
         self.position = 0
 
     def read(self, size: int = -1) -> bytes:
+        if size == 0:
+            return b""
         if size == -1:
             raise NotImplementedError("Unlimited remote read is not supported.")
             
