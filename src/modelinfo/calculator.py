@@ -79,10 +79,18 @@ def calculate_footprint(
     
     if is_lazy:
         base_memory_bytes = tensors.get("__metadata__", {}).get("total_size", 0.0)
-        # Assume predominantly FP16/BF16 for modern Hub architectures
-        primary_dtype = "BF16"
+        # Lazy mode estimates parameter count from the configured weight dtype.
+        # Retain the BF16 fallback when no recognized dtype is available.
+        dtype_config = config or {}
+        if isinstance(dtype_config.get("text_config"), dict):
+            dtype_config = dtype_config["text_config"]
+        configured_dtype = dtype_config.get("dtype") or dtype_config.get("torch_dtype")
+        primary_dtype = {
+            "float64": "F64", "float32": "F32", "float16": "F16",
+            "bfloat16": "BF16",
+        }.get(str(configured_dtype).lower(), "BF16")
         dtype_counts[primary_dtype] = 1
-        total_params = int(base_memory_bytes / 2.0)
+        total_params = int(base_memory_bytes / _get_bytes_per_param(primary_dtype))
     else:
         for name, metadata in tensors.items():
             if name == "__metadata__":
