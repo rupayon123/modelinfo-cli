@@ -234,10 +234,15 @@ def _fetch_remote_gguf_group(real_repo_id: str, gguf_files: List[Dict[str, Any]]
     return tensors
 
 
-def _fetch_shards_concurrently(real_repo_id: str, unique_shards: List[str], timeout: float) -> Tuple[Dict[str, Any], int]:
+def _fetch_shards_concurrently(real_repo_id: str, unique_shards: List[str], timeout: float, weight_map: Dict[str, str] | None = None) -> Tuple[Dict[str, Any], int]:
     def fetch_shard(shard: str):
         try:
             header = _fetch_safetensors_header(real_repo_id, shard, timeout=timeout)
+            if weight_map is not None:
+                assigned = [name for name, filename in weight_map.items() if filename == shard]
+                if any(name not in header for name in assigned):
+                    raise ValueError(f"Indexed tensor missing from shard {shard!r}")
+                header = {name: header[name] for name in assigned}
             return shard, header, None
         except Exception as e:
             return shard, {}, e
@@ -283,7 +288,7 @@ def _fetch_remote_safetensors_sharded(
             "total_size": total_size
         }
     else:
-        tensors, missing_shards = _fetch_shards_concurrently(real_repo_id, unique_shards, timeout)
+        tensors, missing_shards = _fetch_shards_concurrently(real_repo_id, unique_shards, timeout, weight_map)
         tensors["__metadata__"] = {
             "missing_shards": missing_shards,
             "total_shards": len(unique_shards),
