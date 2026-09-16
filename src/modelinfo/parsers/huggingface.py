@@ -35,7 +35,9 @@ def _get_hf_token() -> str | None:
     if token:
         return token
         
-    cache_path = os.path.expanduser("~/.cache/huggingface/token")
+    cache_home = os.environ.get("XDG_CACHE_HOME", "~/.cache")
+    hf_home = os.environ.get("HF_HOME", os.path.join(cache_home, "huggingface"))
+    cache_path = os.path.expanduser(os.environ.get("HF_TOKEN_PATH", os.path.join(hf_home, "token")))
     if os.path.exists(cache_path):
         try:
             with open(cache_path, "r", encoding="utf-8") as f:
