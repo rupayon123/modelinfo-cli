@@ -124,7 +124,10 @@ def _fetch_safetensors_header(repo_id: str, filename: str, timeout: float = 10.0
     if len(json_bytes) != header_size:
         raise ValueError(f"SafeTensors header in {filename} is truncated: expected {header_size} bytes, got {len(json_bytes)}.")
 
-    return json.loads(json_bytes)
+    header = json.loads(json_bytes)
+    if not isinstance(header, dict):
+        raise ValueError(f"SafeTensors header in {filename} must be a JSON object.")
+    return header
 
 def _get_remote_file_size_fallback(repo_id: str, filename: str, timeout: float = 10.0) -> float:
     req = urllib.request.Request(_hub_file_url(repo_id, filename), method="HEAD")
